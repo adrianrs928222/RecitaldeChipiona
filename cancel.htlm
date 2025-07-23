@@ -1,21 +1,42 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Compra cancelada</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pago cancelado</title>
   <style>
     body {
+      background: #fefefe;
+      font-family: 'Segoe UI', sans-serif;
       text-align: center;
-      font-family: Arial, sans-serif;
-      padding: 40px;
+      padding: 60px 20px;
     }
+
+    .mensaje {
+      background: #fff0f0;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(255,0,0,0.1);
+      display: inline-block;
+    }
+
     h1 {
-      color: #c62828;
+      color: #d32f2f;
+      font-size: 30px;
+      margin-bottom: 20px;
+    }
+
+    p {
+      font-size: 18px;
+      color: #444;
     }
   </style>
 </head>
 <body>
-  <h1>Compra cancelada</h1>
-  <p>Puedes intentarlo de nuevo cuando quieras. 🎫</p>
+  <div class="mensaje">
+    <h1>❌ Pago cancelado</h1>
+    <p>Tu compra no se ha completado.</p>
+    <p>Si ha sido un error, puedes volver a intentarlo.</p>
+  </div>
 </body>
 </html>
