@@ -1,45 +1,41 @@
-import express from 'express';
-import Stripe from 'stripe';
-import cors from 'cors';
-import path from 'path';
-import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
+import express from "express";
+import Stripe from "stripe";
+import cors from "cors";
+import dotenv from "dotenv";
 
 dotenv.config();
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const app = express();
-const PORT = process.env.PORT || 3000;
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-app.use(cors({ origin: '*' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors());
 app.use(express.json());
 
-app.post('/create-checkout-session', async (req, res) => {
+app.post("/create-checkout-session", async (req, res) => {
   try {
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [{
-        price_data: {
-          currency: 'eur',
-          product_data: {
-            name: 'Entrada Recital Flamenco 6 de agosto',
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "eur",
+            product_data: {
+              name: "Entrada Recital Flamenco – Chipiona",
+            },
+            unit_amount: 500, // 5€ en céntimos
           },
-          unit_amount: 500,
+          quantity: 1,
         },
-        quantity: 1,
-      }],
-      mode: 'payment',
-      success_url: 'https://one-store-95m5.onrender.com/success',
-      cancel_url: 'https://one-store-95m5.onrender.com/cancel',
+      ],
+      mode: "payment",
+      success_url: "https://adrianrs928222.github.io/flamenco/success.html",
+      cancel_url: "https://adrianrs928222.github.io/flamenco/cancel.html",
     });
+
     res.json({ url: session.url });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-app.listen(PORT, () => console.log(`Servidor funcionando en puerto ${PORT}`));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("Servidor en puerto", PORT));
