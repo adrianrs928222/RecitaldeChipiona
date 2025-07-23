@@ -8,82 +8,91 @@
 body, html {
   height: 100%;
   font-family: 'Segoe UI', sans-serif;
+  background: #000;
+  overflow-x: hidden;
 }
 
-/* Fondo con imagen en carpeta /img/ */
+/* Fondo con degradado + imagen */
 .fondo {
-  background: url('img/flamenco.jpg') no-repeat center center / cover;
+  background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+              url('img/flamenco.jpg') no-repeat center center / cover;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 30px;
 }
 
-/* Capa oscura encima del fondo */
-.fondo::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
-  z-index: 0;
-}
-
-/* Contenedor del contenido */
+/* Contenedor de contenido con efecto "glass" */
 .contenido {
-  position: relative;
-  z-index: 1;
-  background-color: rgba(255, 255, 255, 0.95);
-  padding: 40px 30px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-radius: 16px;
+  padding: 40px 30px;
+  text-align: center;
+  color: white;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
   max-width: 500px;
   width: 100%;
-  text-align: center;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+  animation: aparecer 1s ease-in-out;
+}
+
+/* Animación suave */
+@keyframes aparecer {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* Títulos y texto */
 h1 {
-  font-size: 28px;
-  color: #c62828;
+  font-size: 32px;
   margin-bottom: 20px;
+  color: #ffe082;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
-.fecha, .lugar, .precio, .organiza {
-  font-size: 17px;
+.fecha, .lugar, .precio {
+  font-size: 18px;
   margin: 10px 0;
-  color: #444;
 }
 
 .precio strong {
-  color: #000;
+  color: #fff;
+  font-weight: bold;
 }
 
-/* Botón bonito */
+.organiza {
+  margin-top: 30px;
+  font-size: 14px;
+  color: #ccc;
+}
+
+/* Botón moderno */
 button {
   margin-top: 25px;
-  background: linear-gradient(135deg, #c62828, #e53935);
-  color: white;
+  background: #ffcc00;
+  color: #000;
   border: none;
-  padding: 14px 32px;
+  padding: 14px 30px;
   font-size: 18px;
-  border-radius: 10px;
+  border-radius: 8px;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  transition: transform 0.3s, box-shadow 0.3s;
+  box-shadow: 0 4px 15px rgba(255, 204, 0, 0.4);
 }
 
 button:hover {
   transform: scale(1.05);
-  background: linear-gradient(135deg, #b71c1c, #d32f2f);
-}
-
-/* Footer */
-.organiza {
-  margin-top: 30px;
-  font-size: 14px;
-  color: #777;
+  box-shadow: 0 6px 20px rgba(255, 204, 0, 0.6);
 }
 
 /* Responsive */
@@ -93,7 +102,7 @@ button:hover {
   }
 
   h1 {
-    font-size: 22px;
+    font-size: 24px;
   }
 
   button {
