@@ -94,7 +94,7 @@ app.post("/create-checkout-session", async (req, res) => {
           product_data: {
             name: "Entrada Recital Flamenco – Chipiona",
           },
-          unit_amount: 500,
+          unit_amount: 100,
         },
         quantity: 1,
       }],
