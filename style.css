@@ -10,9 +10,9 @@ body, html {
   font-family: 'Segoe UI', sans-serif;
 }
 
-/* Fondo con imagen */
+/* Fondo con imagen en carpeta /img/ */
 .fondo {
-  background: url('flamenco.jpg') no-repeat center center / cover;
+  background: url('img/flamenco.jpg') no-repeat center center / cover;
   min-height: 100vh;
   display: flex;
   align-items: center;
