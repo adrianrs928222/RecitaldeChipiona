@@ -1,56 +1,25 @@
 import express from 'express';
-import cors from 'cors';
 import Stripe from 'stripe';
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
-import PDFDocument from 'pdfkit';
-import fs from 'fs';
+import puppeteer from 'puppeteer';
 import path from 'path';
+import fs from 'fs';
 
 dotenv.config();
+
 const app = express();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-app.use(cors({ origin: 'https://adrianrs928222.github.io' }));
-app.use(express.json());
-
-const DOMAIN = process.env.DOMAIN || 'https://recitaldechipiona.onrender.com';
-
-// Ruta para crear la sesión de pago
-app.post('/create-checkout-session', async (req, res) => {
-  try {
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [{
-        price_data: {
-          currency: 'eur',
-          product_data: {
-            name: 'Entrada Recital Flamenco – Chipiona',
-          },
-          unit_amount: 100, // 1 €
-        },
-        quantity: 1,
-      }],
-      mode: 'payment',
-      success_url: `${DOMAIN}/success`,
-      cancel_url: `${DOMAIN}/cancel`,
-    });
-    res.json({ url: session.url });
-  } catch (error) {
-    console.error('Error creando sesión de Stripe:', error);
-    res.status(500).json({ error: 'Error al crear la sesión' });
-  }
-});
-
-// Webhook de Stripe
+// 👉 Solo para el webhook usa express.raw
 app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
-  let event;
 
+  let event;
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
-    console.error('⚠️  Webhook signature verification failed:', err.message);
+    console.error('❌ Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
@@ -58,62 +27,97 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
     const session = event.data.object;
     const customerEmail = session.customer_details.email;
 
-    // Crear PDF
-    const doc = new PDFDocument();
-    const pdfPath = `entrada-${session.id}.pdf`;
-    const stream = fs.createWriteStream(pdfPath);
-    doc.pipe(stream);
+    const html = `
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial; padding: 40px; text-align: center; }
+            .title { font-size: 24px; font-weight: bold; }
+            .info { margin-top: 20px; font-size: 18px; }
+            img { margin-top: 20px; width: 150px; }
+          </style>
+        </head>
+        <body>
+          <div class="title">🎫 Entrada Recital Flamenco</div>
+          <div class="info">Gracias por tu compra, ${customerEmail}.</div>
+          <div class="info">📅 Fecha: 6 de agosto a las 21:00h</div>
+          <div class="info">📍 Lugar: Chipiona</div>
+          <img src="https://adrianrs928222.github.io/RecitaldeChipiona/logo.png" />
+        </body>
+      </html>
+    `;
 
-    // Cabecera
-    doc.image('img/escudo.jpg', { fit: [100, 100], align: 'center' });
-    doc.fontSize(20).text('🎶 Recital Flamenco – Chipiona', { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(16).text('📍 CEIP Maestro Manuel Aparcero', { align: 'center' });
-    doc.text('🗓️ 6 de agosto de 2025 – 21:00h', { align: 'center' });
-    doc.moveDown();
-    doc.text('🎟️ Entrada válida para 1 persona', { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(12).text('Gracias por tu compra', { align: 'center' });
-    doc.end();
+    const browser = await puppeteer.launch({
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    const page = await browser.newPage();
+    await page.setContent(html);
+    const pdfBuffer = await page.pdf({ format: 'A4' });
+    await browser.close();
 
-    // Esperar que se guarde el PDF y enviarlo
-    stream.on('finish', async () => {
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      });
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_FROM,
+        pass: process.env.EMAIL_PASS
+      }
+    });
 
-      await transporter.sendMail({
-        from: `"Recital Flamenco Chipiona" <${process.env.EMAIL_USER}>`,
-        to: customerEmail,
-        subject: '🎟️ Tu entrada para el Recital Flamenco',
-        text: 'Adjunto encontrarás tu entrada en formato PDF. ¡Nos vemos el 6 de agosto!',
-        attachments: [{
-          filename: 'entrada.pdf',
-          path: pdfPath,
-        }],
-      });
+    const mailOptions = {
+      from: `"Recital Flamenco" <${process.env.EMAIL_FROM}>`,
+      to: customerEmail,
+      subject: '🎟️ Entrada para el Recital Flamenco',
+      text: 'Gracias por tu compra. Adjuntamos tu entrada en PDF.',
+      attachments: [{
+        filename: 'entrada.pdf',
+        content: pdfBuffer
+      }]
+    };
 
-      // Elimina el archivo temporal tras enviar
-      fs.unlinkSync(pdfPath);
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error('❌ Error al enviar correo:', error);
+      } else {
+        console.log('✅ Entrada enviada:', info.response);
+      }
     });
   }
 
-  res.status(200).json({ received: true });
+  res.status(200).send('Evento recibido');
 });
 
-app.get('/success', (req, res) => {
-  res.send('✅ ¡Gracias por tu compra! Te hemos enviado la entrada por correo.');
+// 👉 JSON parser para el resto de rutas
+app.use(express.json());
+
+app.post('/create-checkout-session', async (req, res) => {
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: [{
+        price_data: {
+          currency: 'eur',
+          product_data: {
+            name: 'Entrada Recital Flamenco'
+          },
+          unit_amount: 500 // 5€
+        },
+        quantity: 1
+      }],
+      success_url: 'https://adrianrs928222.github.io/RecitaldeChipiona/success.html',
+      cancel_url: 'https://adrianrs928222.github.io/RecitaldeChipiona/cancel.html'
+    });
+
+    res.json({ id: session.id });
+  } catch (err) {
+    console.error('❌ Error creando sesión de pago:', err);
+    res.status(500).json({ error: 'Error al crear sesión' });
+  }
 });
 
-app.get('/cancel', (req, res) => {
-  res.send('❌ El pago fue cancelado. Inténtalo de nuevo cuando quieras.');
+app.get('/', (req, res) => {
+  res.send('Servidor activo para entradas 🎫');
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor en puerto ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🔥 Servidor activo en puerto ${PORT}`));
