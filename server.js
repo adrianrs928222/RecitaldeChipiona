@@ -3,22 +3,32 @@ import cors from 'cors';
 import Stripe from 'stripe';
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
-import pdf from 'html-pdf';
+import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 dotenv.config();
+
 const app = express();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-app.use(cors());
-app.use(express.static('public'));
-app.use(express.json());
 
-// ✅ Stripe Checkout
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
+
+// 👉 Página de éxito
+app.get('/success', (req, res) => {
+  res.send('<h1>✅ Pago exitoso. Te hemos enviado tu entrada por email.</h1>');
+});
+
+// 👉 Página de cancelación
+app.get('/cancel', (req, res) => {
+  res.send('<h1>❌ Pago cancelado.</h1>');
+});
+
+// 👉 Checkout
 app.post('/create-checkout-session', async (req, res) => {
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
@@ -26,93 +36,93 @@ app.post('/create-checkout-session', async (req, res) => {
       price_data: {
         currency: 'eur',
         product_data: {
-          name: 'Entrada Recital Flamenco Chipiona',
+          name: 'Entrada Recital Flamenco – Chipiona',
         },
-        unit_amount: 100, // 1 €
+        unit_amount: 100, // 1€
       },
       quantity: 1,
     }],
     mode: 'payment',
-    success_url: 'https://recitaldechipiona.onrender.com/success',
-    cancel_url: 'https://recitaldechipiona.onrender.com/cancel',
+    success_url: `${process.env.DOMAIN}/success`,
+    cancel_url: `${process.env.DOMAIN}/cancel`,
+    customer_email: req.body.email,
+    metadata: {
+      evento: 'Recital Flamenco – Chipiona',
+    }
   });
-  res.json({ url: session.url });
+
+  res.json({ id: session.id });
 });
 
-// ✅ Ruta éxito
-app.get('/success', (req, res) => {
-  res.send('<h1 style="text-align:center;">✅ ¡Pago exitoso! Gracias por tu compra.</h1>');
-});
-
-// ✅ Ruta cancelado
-app.get('/cancel', (req, res) => {
-  res.send('<h1 style="text-align:center;">❌ Pago cancelado. Inténtalo de nuevo.</h1>');
-});
-
-// ✅ Webhook Stripe + PDF + Email
+// 👉 Webhook de Stripe
 app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  let event;
   const sig = req.headers['stripe-signature'];
+  let event;
+
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
-    console.log('⚠️ Error en la verificación del webhook:', err.message);
+    console.error('⚠️ Error en webhook', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    const customerEmail = session.customer_details.email;
-
-    const html = `
-      <div style="font-family:sans-serif; padding:20px;">
-        <img src="cid:logo" width="100" />
-        <h2>🎫 Entrada Recital Flamenco</h2>
-        <p><strong>Fecha:</strong> 6 de agosto de 2025</p>
-        <p><strong>Hora:</strong> 21:00 h</p>
-        <p><strong>Lugar:</strong> CEIP Maestro Manuel Aparcero</p>
-        <p><strong>Organiza:</strong> C.D. Chipiona F.S</p>
-        <p style="margin-top:20px; font-weight:bold;">¡Gracias por tu compra!</p>
-      </div>
-    `;
-
-    const filePath = path.join(__dirname, 'entrada.pdf');
-    pdf.create(html).toFile(filePath, async (err, resPDF) => {
-      if (err) return console.log('❌ Error creando PDF:', err);
-
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      });
-
-      await transporter.sendMail({
-        from: `"C.D. Chipiona F.S" <${process.env.EMAIL_USER}>`,
-        to: customerEmail,
-        subject: 'Tu entrada al Recital Flamenco',
-        text: 'Gracias por tu compra. Adjuntamos tu entrada.',
-        attachments: [
-          {
-            filename: 'entrada.pdf',
-            path: resPDF.filename,
-          },
-          {
-            filename: 'logo.jpg',
-            path: path.join(__dirname, 'public', 'img', 'escudo.jpg'),
-            cid: 'logo',
-          },
-        ],
-      });
-
-      fs.unlinkSync(resPDF.filename); // elimina el PDF temporal
-    });
+    const email = session.customer_email;
+    enviarEntradaPDF(email);
   }
 
-  res.sendStatus(200);
+  res.json({ received: true });
 });
 
-app.listen(process.env.PORT || 3000, () => {
-  console.log('✅ Servidor funcionando');
-});
+// 👉 Envío del PDF por correo
+function enviarEntradaPDF(email) {
+  const doc = new PDFDocument();
+  const filePath = path.join(__dirname, 'entrada.pdf');
+  const stream = fs.createWriteStream(filePath);
+  doc.pipe(stream);
+
+  doc.image(path.join(__dirname, 'public/img/escudo.jpg'), 220, 50, { width: 150 });
+  doc.fontSize(20).text('Entrada Oficial', { align: 'center', underline: true });
+  doc.moveDown();
+  doc.fontSize(16).text('🎶 Recital Flamenco – Chipiona', { align: 'center' });
+  doc.moveDown();
+  doc.text('📅 Fecha: 6 de agosto · 21:00 h', { align: 'center' });
+  doc.text('📍 Lugar: CEIP Maestro Manuel Aparcero', { align: 'center' });
+  doc.moveDown();
+  doc.fontSize(18).text('🎟️ Entrada: 1€', { align: 'center', bold: true });
+  doc.moveDown();
+  doc.fontSize(14).text('Organiza: C.D. Chipiona F.S · Ayuntamiento de Chipiona', { align: 'center' });
+  doc.moveDown();
+  doc.fontSize(14).fillColor('green').text('✅ Gracias por tu compra', { align: 'center' });
+  doc.end();
+
+  stream.on('finish', () => {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    const mailOptions = {
+      from: `"Recital Flamenco" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: '🎫 Tu entrada para el Recital Flamenco',
+      text: 'Gracias por tu compra. Adjuntamos tu entrada en PDF.',
+      attachments: [{
+        filename: 'entrada.pdf',
+        path: filePath,
+      }],
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) return console.error('❌ Error al enviar email:', error);
+      console.log('✅ Entrada enviada a:', email);
+    });
+  });
+}
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Servidor en http://localhost:${PORT}`));
