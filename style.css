@@ -12,8 +12,7 @@ body, html {
 }
 
 .fondo {
-  background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
-              url('img/flamenco.jpg') no-repeat center center / cover;
+  background: url('img/flamenco.jpg') no-repeat center center / cover;
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -22,14 +21,12 @@ body, html {
 }
 
 .contenido {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background-color: #ffffff; /* Fondo blanco sólido */
   border-radius: 16px;
   padding: 40px 30px;
   text-align: center;
   color: #2196f3; /* Letras azules */
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
   max-width: 500px;
   width: 100%;
   font-weight: bold;
@@ -59,14 +56,13 @@ h1 {
 }
 
 .precio strong {
-  color: #fff;
-  font-weight: bold;
+  color: #000;
 }
 
 .organiza {
   margin-top: 30px;
   font-size: 14px;
-  color: #bbdefb;
+  color: #1976d2;
 }
 
 button {
