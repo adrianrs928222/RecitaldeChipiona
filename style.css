@@ -1,4 +1,3 @@
-/* Reset básico */
 * {
   margin: 0;
   padding: 0;
@@ -12,7 +11,6 @@ body, html {
   overflow-x: hidden;
 }
 
-/* Fondo con degradado + imagen */
 .fondo {
   background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
               url('img/flamenco.jpg') no-repeat center center / cover;
@@ -23,7 +21,6 @@ body, html {
   padding: 30px;
 }
 
-/* Contenedor con efecto "glass" */
 .contenido {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(12px);
@@ -31,15 +28,14 @@ body, html {
   border-radius: 16px;
   padding: 40px 30px;
   text-align: center;
-  color: white;
+  color: #2196f3; /* Letras azules */
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
   max-width: 500px;
   width: 100%;
+  font-weight: bold;
   animation: aparecer 1s ease-in-out;
-  font-weight: bold; /* Todo el contenido en negrita */
 }
 
-/* Animación suave */
 @keyframes aparecer {
   from {
     transform: translateY(40px);
@@ -51,19 +47,15 @@ body, html {
   }
 }
 
-/* Títulos y texto */
 h1 {
   font-size: 32px;
   margin-bottom: 20px;
-  color: #ffe082;
-  font-weight: bold;
-  line-height: 1.2;
+  color: #2196f3;
 }
 
 .fecha, .lugar, .precio, .organiza {
   font-size: 18px;
   margin: 10px 0;
-  font-weight: bold; /* Negrita individual */
 }
 
 .precio strong {
@@ -74,15 +66,13 @@ h1 {
 .organiza {
   margin-top: 30px;
   font-size: 14px;
-  color: #ccc;
-  font-weight: bold;
+  color: #bbdefb;
 }
 
-/* Botón moderno */
 button {
   margin-top: 25px;
-  background: #ffcc00;
-  color: #000;
+  background: #2196f3;
+  color: white;
   border: none;
   padding: 14px 30px;
   font-size: 18px;
@@ -90,12 +80,18 @@ button {
   font-weight: bold;
   cursor: pointer;
   transition: transform 0.3s, box-shadow 0.3s;
-  box-shadow: 0 4px 15px rgba(255, 204, 0, 0.4);
+  box-shadow: 0 4px 15px rgba(33, 150, 243, 0.4);
 }
 
 button:hover {
   transform: scale(1.05);
-  box-shadow: 0 6px 20px rgba(255, 204, 0, 0.6);
+  box-shadow: 0 6px 20px rgba(33, 150, 243, 0.6);
+}
+
+/* Escudo */
+.escudo {
+  width: 120px;
+  margin-bottom: 20px;
 }
 
 /* Responsive */
@@ -112,5 +108,9 @@ button:hover {
     width: 100%;
     font-size: 16px;
     padding: 12px;
+  }
+
+  .escudo {
+    width: 90px;
   }
 }
